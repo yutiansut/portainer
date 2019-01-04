@@ -15,7 +15,7 @@ const (
 
 // taskListOperation extracts the response as a JSON object, loop through the tasks array
 // and filter the tasks based on resource controls before rewriting the response
-func taskListOperation(request *http.Request, response *http.Response, executor *operationExecutor) error {
+func taskListOperation(response *http.Response, executor *operationExecutor) error {
 	var err error
 
 	// TaskList response is a JSON array
@@ -65,12 +65,13 @@ func filterTaskList(taskData []interface{}, context *restrictedOperationContext)
 
 		serviceID := taskObject[taskServiceIdentifier].(string)
 		taskObject, access := applyResourceAccessControl(taskObject, serviceID, context)
-		if access {
+		if !access {
 			taskLabels := extractTaskLabelsFromTaskListObject(taskObject)
 			taskObject, access = applyResourceAccessControlFromLabel(taskLabels, taskObject, taskLabelForStackIdentifier, context)
-			if access {
-				filteredTaskData = append(filteredTaskData, taskObject)
-			}
+		}
+
+		if access {
+			filteredTaskData = append(filteredTaskData, taskObject)
 		}
 	}
 

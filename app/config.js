@@ -1,6 +1,6 @@
 angular.module('portainer')
-  .config(['$stateProvider', '$urlRouterProvider', '$httpProvider', 'localStorageServiceProvider', 'jwtOptionsProvider', 'AnalyticsProvider', '$uibTooltipProvider', '$compileProvider', 'cfpLoadingBarProvider',
-  function ($stateProvider, $urlRouterProvider, $httpProvider, localStorageServiceProvider, jwtOptionsProvider, AnalyticsProvider, $uibTooltipProvider, $compileProvider, cfpLoadingBarProvider) {
+  .config(['$urlRouterProvider', '$httpProvider', 'localStorageServiceProvider', 'jwtOptionsProvider', 'AnalyticsProvider', '$uibTooltipProvider', '$compileProvider', 'cfpLoadingBarProvider',
+  function ($urlRouterProvider, $httpProvider, localStorageServiceProvider, jwtOptionsProvider, AnalyticsProvider, $uibTooltipProvider, $compileProvider, cfpLoadingBarProvider) {
     'use strict';
 
     var environment = '@@ENVIRONMENT';
@@ -14,17 +14,31 @@ angular.module('portainer')
     jwtOptionsProvider.config({
       tokenGetter: ['LocalStorage', function(LocalStorage) {
         return LocalStorage.getJWT();
-      }],
-      unauthenticatedRedirector: ['$state', function($state) {
-        $state.go('auth', {error: 'Your session has expired'});
       }]
     });
     $httpProvider.interceptors.push('jwtInterceptor');
+    $httpProvider.interceptors.push('EndpointStatusInterceptor');
+    $httpProvider.defaults.headers.post['Content-Type'] = 'application/json';
+    $httpProvider.defaults.headers.put['Content-Type'] = 'application/json';
+    $httpProvider.defaults.headers.patch['Content-Type'] = 'application/json';
+
+    $httpProvider.interceptors.push(['HttpRequestHelper', function(HttpRequestHelper) {
+      return {
+        request: function(config) {
+          if (config.url.indexOf('/docker/') > -1) {
+            config.headers['X-PortainerAgent-Target'] = HttpRequestHelper.portainerAgentTargetHeader();
+          }
+          return config;
+        }
+      };
+    }]);
 
     AnalyticsProvider.setAccount('@@CONFIG_GA_ID');
     AnalyticsProvider.startOffline(true);
 
     toastr.options.timeOut = 3000;
+
+    Terminal.applyAddon(fit);
 
     $uibTooltipProvider.setTriggers({
       'mouseenter': 'mouseleave',
@@ -35,7 +49,7 @@ angular.module('portainer')
 
     cfpLoadingBarProvider.includeSpinner = false;
     cfpLoadingBarProvider.parentSelector = '#loadingbar-placeholder';
+    cfpLoadingBarProvider.latencyThreshold = 600;
 
     $urlRouterProvider.otherwise('/auth');
-    configureRoutes($stateProvider);
   }]);

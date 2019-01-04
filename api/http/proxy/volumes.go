@@ -15,7 +15,7 @@ const (
 
 // volumeListOperation extracts the response as a JSON object, loop through the volume array
 // decorate and/or filter the volumes based on resource controls before rewriting the response
-func volumeListOperation(request *http.Request, response *http.Response, executor *operationExecutor) error {
+func volumeListOperation(response *http.Response, executor *operationExecutor) error {
 	var err error
 	// VolumeList response is a JSON object
 	// https://docs.docker.com/engine/api/v1.28/#operation/VolumeList
@@ -48,7 +48,7 @@ func volumeListOperation(request *http.Request, response *http.Response, executo
 // volumeInspectOperation extracts the response as a JSON object, verify that the user
 // has access to the volume based on any existing resource control and either rewrite an access denied response
 // or a decorated volume.
-func volumeInspectOperation(request *http.Request, response *http.Response, executor *operationExecutor) error {
+func volumeInspectOperation(response *http.Response, executor *operationExecutor) error {
 	// VolumeInspect response is a JSON object
 	// https://docs.docker.com/engine/api/v1.28/#operation/VolumeInspect
 	responseObject, err := getResponseAsJSONOBject(response)
@@ -62,17 +62,17 @@ func volumeInspectOperation(request *http.Request, response *http.Response, exec
 
 	volumeID := responseObject[volumeIdentifier].(string)
 	responseObject, access := applyResourceAccessControl(responseObject, volumeID, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
 	volumeLabels := extractVolumeLabelsFromVolumeInspectObject(responseObject)
 	responseObject, access = applyResourceAccessControlFromLabel(volumeLabels, responseObject, volumeLabelForStackIdentifier, executor.operationContext)
-	if !access {
-		return rewriteAccessDeniedResponse(response)
+	if access {
+		return rewriteResponse(response, responseObject, http.StatusOK)
 	}
 
-	return rewriteResponse(response, responseObject, http.StatusOK)
+	return rewriteAccessDeniedResponse(response)
 }
 
 // extractVolumeLabelsFromVolumeInspectObject retrieve the Labels of the volume if present.
@@ -130,12 +130,13 @@ func filterVolumeList(volumeData []interface{}, context *restrictedOperationCont
 
 		volumeID := volumeObject[volumeIdentifier].(string)
 		volumeObject, access := applyResourceAccessControl(volumeObject, volumeID, context)
-		if access {
+		if !access {
 			volumeLabels := extractVolumeLabelsFromVolumeListObject(volumeObject)
 			volumeObject, access = applyResourceAccessControlFromLabel(volumeLabels, volumeObject, volumeLabelForStackIdentifier, context)
-			if access {
-				filteredVolumeData = append(filteredVolumeData, volumeObject)
-			}
+		}
+
+		if access {
+			filteredVolumeData = append(filteredVolumeData, volumeObject)
 		}
 	}
 
