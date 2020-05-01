@@ -25,7 +25,9 @@
     "start:server": "yarn build:server:offline && grunt shell:run:amd64",
     "clean:all": "grunt clean:all",
     "build": "grunt build",
-    "build:server:offline": "cd ./api/cmd/portainer && CGO_ENABLED=0 go build -a --installsuffix cgo --ldflags '-s' && mv -f portainer ../../../dist/portainer-linux-amd64"
+    "build:server:offline": "cd ./api/cmd/portainer && CGO_ENABLED=0 go build -a --installsuffix cgo --ldflags '-s' && mv -f portainer ../../../dist/portainer-linux-amd64",
+    "snyk-protect": "snyk protect",
+    "prepare": "yarn run snyk-protect"
   },
   "engines": {
     "node": ">= 0.8.4"
@@ -57,16 +59,17 @@
     "codemirror": "~5.30.0",
     "filesize": "~3.3.0",
     "isteven-angular-multiselect": "~4.0.0",
-    "jquery": "^3.3.1",
+    "jquery": "^3.5.0",
     "js-yaml": "~3.10.0",
     "lodash": "^4.17.10",
     "moment": "^2.21.0",
     "ng-file-upload": "~12.2.13",
     "rdash-ui": "1.0.*",
     "splitargs": "github:deviantony/splitargs#~0.2.0",
-    "toastr": "github:CodeSeven/toastr#~2.1.3",
+    "toastr": "2.1.4",
     "ui-select": "^0.19.8",
-    "xterm": "^3.8.0"
+    "xterm": "^3.8.0",
+    "snyk": "^1.316.1"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.1",
@@ -90,5 +93,6 @@
     "grunt-usemin": "^3.1.1",
     "gruntify-eslint": "^3.1.0",
     "load-grunt-tasks": "^3.5.2"
-  }
+  },
+  "snyk": true
 }
